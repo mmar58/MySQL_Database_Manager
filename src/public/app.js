@@ -1800,6 +1800,47 @@ function openEditRowModal(row) {
             if (col === currentPrimaryKey) {
                 inputControl.disabled = true;
                 inputControl.title = 'Primary Key cannot be edited';
+                inputControl.id = 'pkInput'; // Mark purely for easy access
+
+                // Add "Enable Editing" toggle for PK
+                const enableContainer = document.createElement('div');
+                enableContainer.style.display = 'flex';
+                enableContainer.style.alignItems = 'center';
+                enableContainer.style.gap = '5px';
+                enableContainer.style.marginTop = '4px';
+                enableContainer.style.fontSize = '0.85em';
+                enableContainer.style.color = '#666';
+
+                const enableCheckbox = document.createElement('input');
+                enableCheckbox.type = 'checkbox';
+                enableCheckbox.id = 'enablePkEdit';
+                enableCheckbox.addEventListener('change', (e) => {
+                    inputControl.disabled = !e.target.checked;
+                    if (e.target.checked) {
+                        inputControl.title = 'Primary Key editing enabled';
+                    } else {
+                        inputControl.title = 'Primary Key cannot be edited';
+                    }
+                });
+
+                const enableLabel = document.createElement('label');
+                enableLabel.htmlFor = 'enablePkEdit';
+                enableLabel.textContent = 'Enable Editing (Main Index)';
+                enableLabel.style.cursor = 'pointer';
+
+                enableContainer.appendChild(enableCheckbox);
+                enableContainer.appendChild(enableLabel);
+
+                // We need to append this after the input, so we'll do it by appending to inputContainer
+                // inputContainer is a flex row currently. 
+                // To keep layout clean, we might want to wrap input + toggle or just let it be.
+                // Given the current layout: inputContainer (flex row) -> inputControl
+                // If we add enableContainer (flex row) to inputContainer, it will be side-by-side or squished.
+                // Better to change inputContainer to column if it's the PK, OR append enableContainer OUTSIDE inputContainer but inside formGroup.
+                // Let's go with appending to formGroup.
+                setTimeout(() => {
+                    formGroup.appendChild(enableContainer);
+                }, 0);
             }
         }
 
@@ -1887,7 +1928,7 @@ function saveRowData(e) {
     const updateData = {};
 
     formData.forEach((value, key) => {
-        if (key !== currentPrimaryKey) {
+        if (key !== currentPrimaryKey || !document.getElementById('editRowForm').querySelector('[name="' + currentPrimaryKey + '"]').disabled) {
             // Check if there's a checked NULL checkbox for this column
             const nullCheckbox = form.querySelector(`.null-checkbox[data-column="${key}"]`);
             if (nullCheckbox && nullCheckbox.checked) {

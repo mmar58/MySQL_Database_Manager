@@ -733,9 +733,26 @@ class DatabaseManager {
             // Add PK to values for WHERE clause
             values.push(primaryKeyValue);
 
-            const query = `UPDATE ${escapedDatabase}.${escapedTable} SET ${setClauses.join(', ')} WHERE ${this.connection.escapeId(primaryKeyColumn)} = ?`;
+            // Check if Primary Key is being changed
+            const pkChanged = columns.includes(primaryKeyColumn) && updateData[primaryKeyColumn] != primaryKeyValue;
 
-            await this.connection.execute(query, values);
+            if (pkChanged) {
+                // Determine if we need to disable FK checks
+                // We'll wrap this in a transaction or just sequential execution since we have the connection
+                // BUT: We need to use 'this.connection.query' directly which might be shared?
+                // Actually, 'this.connection' is per socket (DatabaseManager instance per socket), ensuring isolation per user.
+
+                await this.connection.query('SET FOREIGN_KEY_CHECKS=0');
+                try {
+                    const query = `UPDATE ${escapedDatabase}.${escapedTable} SET ${setClauses.join(', ')} WHERE ${this.connection.escapeId(primaryKeyColumn)} = ?`;
+                    await this.connection.execute(query, values);
+                } finally {
+                    await this.connection.query('SET FOREIGN_KEY_CHECKS=1');
+                }
+            } else {
+                const query = `UPDATE ${escapedDatabase}.${escapedTable} SET ${setClauses.join(', ')} WHERE ${this.connection.escapeId(primaryKeyColumn)} = ?`;
+                await this.connection.execute(query, values);
+            }
         } catch (error) {
             throw new Error(`Failed to update row: ${error.message}`);
         }
