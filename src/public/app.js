@@ -853,7 +853,12 @@ function copyRowData(data, button) {
 }
 
 function copyCellData(value, button) {
-    const text = String(value);
+    let text;
+    if (typeof value === 'object' && value !== null) {
+        text = JSON.stringify(value);
+    } else {
+        text = String(value);
+    }
     navigator.clipboard.writeText(text).then(() => {
         const originalText = button.innerHTML;
         button.innerHTML = '✓';
@@ -1515,7 +1520,12 @@ function displayQueryResult(data) {
                             if (value === null) {
                                 html += '<td class="data-cell" style="font-style: italic; color: #888;"><em>NULL</em></td>';
                             } else {
-                                const stringValue = String(value);
+                                let stringValue;
+                                if (typeof value === 'object' && value !== null) {
+                                    stringValue = JSON.stringify(value);
+                                } else {
+                                    stringValue = String(value);
+                                }
                                 let cellClass = 'data-cell';
                                 let displayValue = stringValue;
 
@@ -1565,7 +1575,12 @@ function displayQueryResult(data) {
                         if (value === null) {
                             html += '<td class="data-cell" style="font-style: italic; color: #888;"><em>NULL</em></td>';
                         } else {
-                            const stringValue = String(value);
+                            let stringValue;
+                            if (typeof value === 'object' && value !== null) {
+                                stringValue = JSON.stringify(value);
+                            } else {
+                                stringValue = String(value);
+                            }
                             let cellClass = 'data-cell';
                             let displayValue = stringValue;
 
