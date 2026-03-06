@@ -1251,6 +1251,10 @@ function addSearchFilterRow() {
         <select class="filter-column">
             <option value="">Select Column</option>
         </select>
+        <select class="filter-operator">
+            <option value="LIKE">Contains</option>
+            <option value="NOT LIKE">Not Contains</option>
+        </select>
         <input type="text" class="filter-value" placeholder="Search value...">
         <button type="button" class="remove-filter-btn btn btn-danger btn-small" title="Remove filter">✕</button>
     `;
@@ -1278,6 +1282,7 @@ function removeSearchFilterRow(row) {
     } else {
         // Clear the last remaining row instead of removing it
         row.querySelector('.filter-column').value = '';
+        row.querySelector('.filter-operator').value = 'LIKE';
         row.querySelector('.filter-value').value = '';
     }
 }
@@ -1313,7 +1318,10 @@ function updateSearchInfo(data) {
         const validFilters = data.searchFilters.filter(f => f.column && f.value);
         if (validFilters.length > 0) {
             const logic = data.searchLogic || 'AND';
-            const filterDescriptions = validFilters.map(f => `"${f.value}" in "${f.column}"`);
+            const filterDescriptions = validFilters.map(f => {
+                const op = f.operator === 'NOT LIKE' ? 'not in' : 'in';
+                return `"${f.value}" ${op} "${f.column}"`;
+            });
             const searchInfo = document.createElement('div');
             searchInfo.className = 'search-info';
             searchInfo.textContent = `Filtering: ${filterDescriptions.join(` ${logic} `)} (${data.total} matches)`;
@@ -1346,10 +1354,11 @@ function performSearch() {
 
     filterRows.forEach(row => {
         const column = row.querySelector('.filter-column').value;
+        const operator = row.querySelector('.filter-operator').value;
         const value = row.querySelector('.filter-value').value.trim();
 
         if (column && value) {
-            filters.push({ column, value });
+            filters.push({ column, value, operator });
         } else if (column && !value) {
             hasIncomplete = true;
         } else if (!column && value) {
@@ -1388,6 +1397,10 @@ function clearSearch() {
         <div class="search-filter-row">
             <select class="filter-column">
                 <option value="">Select Column</option>
+            </select>
+            <select class="filter-operator">
+                <option value="LIKE">Contains</option>
+                <option value="NOT LIKE">Not Contains</option>
             </select>
             <input type="text" class="filter-value" placeholder="Search value...">
             <button type="button" class="remove-filter-btn btn btn-danger btn-small" title="Remove filter">✕</button>

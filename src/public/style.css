@@ -1089,6 +1089,19 @@ select {
     box-shadow: 0 0 0 2px var(--primary-light);
 }
 
+.search-filter-row .filter-operator {
+    width: auto;
+    padding: 0.4rem 2rem 0.4rem 0.6rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-family: inherit;
+    background: var(--bg-input);
+    color: var(--text-main);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 .search-filter-row .filter-value {
     flex: 1;
     min-width: 150px;

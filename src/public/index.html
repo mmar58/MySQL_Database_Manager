@@ -152,6 +152,8 @@
                                                         results).</li>
                                                     <li><strong>LIKE matching:</strong> Searches for partial matches
                                                         (e.g. "john" matches "Johnson").</li>
+                                                    <li><strong>Not Contains:</strong> Use the operator dropdown to
+                                                        exclude rows matching the value.</li>
                                                     <li><strong>Clear:</strong> Resets all filters and shows all data.
                                                     </li>
                                                     <li><strong>Page Jump:</strong> Type a page number and click Go to
@@ -165,6 +167,10 @@
                                     <div class="search-filter-row">
                                         <select class="filter-column">
                                             <option value="">Select Column</option>
+                                        </select>
+                                        <select class="filter-operator">
+                                            <option value="LIKE">Contains</option>
+                                            <option value="NOT LIKE">Not Contains</option>
                                         </select>
                                         <input type="text" class="filter-value" placeholder="Search value...">
                                         <button type="button" class="remove-filter-btn btn btn-danger btn-small"

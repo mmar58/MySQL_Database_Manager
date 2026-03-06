@@ -120,7 +120,8 @@ class DatabaseManager {
                     const conditions = validFilters.map(f => {
                         const escapedCol = this.connection.escapeId(f.column);
                         const escapedVal = this.connection.escape(`%${f.value}%`);
-                        return `${escapedCol} LIKE ${escapedVal}`;
+                        const operator = f.operator === 'NOT LIKE' ? 'NOT LIKE' : 'LIKE';
+                        return `${escapedCol} ${operator} ${escapedVal}`;
                     });
                     whereClause = ` WHERE ${conditions.join(` ${logic} `)}`;
                 }
