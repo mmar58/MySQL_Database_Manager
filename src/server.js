@@ -184,7 +184,7 @@ io.on('connection', (socket) => {
     });
 
     // Get table data
-    socket.on('get_table_data', async ({ database, table, limit = 100, offset = 0, sortColumn = null, sortDirection = 'ASC', searchColumn = null, searchValue = null }) => {
+    socket.on('get_table_data', async ({ database, table, limit = 100, offset = 0, sortColumn = null, sortDirection = 'ASC', searchFilters = null, searchLogic = 'AND' }) => {
         const dbManager = activeConnections.get(socket.id);
         if (!dbManager) {
             socket.emit('error', { message: 'No active database connection' });
@@ -192,7 +192,7 @@ io.on('connection', (socket) => {
         }
 
         try {
-            const result = await dbManager.getTableData(database, table, limit, offset, sortColumn, sortDirection, searchColumn, searchValue);
+            const result = await dbManager.getTableData(database, table, limit, offset, sortColumn, sortDirection, searchFilters, searchLogic);
             // Send the result directly, adding database and table info
             socket.emit('table_data', {
                 database,
@@ -203,8 +203,8 @@ io.on('connection', (socket) => {
                 offset: result.offset,
                 sortColumn: result.sortColumn,
                 sortDirection: result.sortDirection,
-                searchColumn: result.searchColumn,
-                searchValue: result.searchValue
+                searchFilters: result.searchFilters,
+                searchLogic: result.searchLogic
             });
         } catch (error) {
             socket.emit('error', { message: error.message });

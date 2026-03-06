@@ -100,7 +100,7 @@ class DatabaseManager {
         }
     }
 
-    async getTableData(databaseName, tableName, limit = 100, offset = 0, sortColumn = null, sortDirection = 'ASC', searchColumn = null, searchValue = null) {
+    async getTableData(databaseName, tableName, limit = 100, offset = 0, sortColumn = null, sortDirection = 'ASC', searchFilters = null, searchLogic = 'AND') {
         if (!this.connection) {
             throw new Error('No database connection');
         }
@@ -111,14 +111,19 @@ class DatabaseManager {
             const escapedTable = this.connection.escapeId(tableName);
             const fullTableName = `${escapedDatabase}.${escapedTable}`;
 
-            // Build WHERE clause for search
+            // Build WHERE clause for multi-column search
             let whereClause = '';
-            let countWhereClause = '';
-            if (searchColumn && searchValue) {
-                const escapedSearchColumn = this.connection.escapeId(searchColumn);
-                const escapedSearchValue = this.connection.escape(`%${searchValue}%`);
-                whereClause = ` WHERE ${escapedSearchColumn} LIKE ${escapedSearchValue}`;
-                countWhereClause = whereClause;
+            if (searchFilters && Array.isArray(searchFilters) && searchFilters.length > 0) {
+                const validFilters = searchFilters.filter(f => f.column && f.value);
+                if (validFilters.length > 0) {
+                    const logic = searchLogic === 'OR' ? 'OR' : 'AND';
+                    const conditions = validFilters.map(f => {
+                        const escapedCol = this.connection.escapeId(f.column);
+                        const escapedVal = this.connection.escape(`%${f.value}%`);
+                        return `${escapedCol} LIKE ${escapedVal}`;
+                    });
+                    whereClause = ` WHERE ${conditions.join(` ${logic} `)}`;
+                }
             }
 
             // Build ORDER BY clause for sorting
@@ -130,7 +135,7 @@ class DatabaseManager {
             }
 
             // Get total count (with search filter if applied)
-            const countQuery = `SELECT COUNT(*) as total FROM ${fullTableName}${countWhereClause}`;
+            const countQuery = `SELECT COUNT(*) as total FROM ${fullTableName}${whereClause}`;
             const [countResult] = await this.connection.query(countQuery);
             const total = countResult[0].total;
 
@@ -145,8 +150,8 @@ class DatabaseManager {
                 offset: offset,
                 sortColumn: sortColumn,
                 sortDirection: sortDirection,
-                searchColumn: searchColumn,
-                searchValue: searchValue
+                searchFilters: searchFilters,
+                searchLogic: searchLogic
             };
         } catch (error) {
             throw new Error(`Failed to get table data: ${error.message}`);

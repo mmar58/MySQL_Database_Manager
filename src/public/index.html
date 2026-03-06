@@ -134,12 +134,54 @@
                         <span id="selectedTable">Select a table to view data</span>
                         <div class="data-actions">
                             <div class="search-controls">
-                                <select id="searchColumn">
-                                    <option value="">Search Column</option>
-                                </select>
-                                <input type="text" id="searchValue" placeholder="Search value...">
-                                <button id="searchBtn" class="btn btn-primary btn-small">Search</button>
-                                <button id="clearSearchBtn" class="btn btn-secondary btn-small">Clear</button>
+                                <div class="search-header">
+                                    <div class="search-tips-wrapper">
+                                        <button type="button" id="searchTipsBtn" class="search-tips-btn"
+                                            title="Search Tips">ℹ️</button>
+                                        <div id="searchTipsPopover" class="search-tips-popover" style="display: none;">
+                                            <div class="search-tips-content">
+                                                <h4>Search Tips</h4>
+                                                <ul>
+                                                    <li><strong>Single filter:</strong> Select a column, type a value,
+                                                        and click Search.</li>
+                                                    <li><strong>Multi filter:</strong> Click "+ Add Filter" to add more
+                                                        filter rows.</li>
+                                                    <li><strong>AND logic:</strong> All filters must match (narrows
+                                                        results).</li>
+                                                    <li><strong>OR logic:</strong> Any filter can match (broadens
+                                                        results).</li>
+                                                    <li><strong>LIKE matching:</strong> Searches for partial matches
+                                                        (e.g. "john" matches "Johnson").</li>
+                                                    <li><strong>Clear:</strong> Resets all filters and shows all data.
+                                                    </li>
+                                                    <li><strong>Page Jump:</strong> Type a page number and click Go to
+                                                        jump directly.</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="searchFiltersContainer">
+                                    <div class="search-filter-row">
+                                        <select class="filter-column">
+                                            <option value="">Select Column</option>
+                                        </select>
+                                        <input type="text" class="filter-value" placeholder="Search value...">
+                                        <button type="button" class="remove-filter-btn btn btn-danger btn-small"
+                                            title="Remove filter">✕</button>
+                                    </div>
+                                </div>
+                                <div class="search-filter-actions">
+                                    <select id="searchLogic" title="Filter logic">
+                                        <option value="AND">AND</option>
+                                        <option value="OR">OR</option>
+                                    </select>
+                                    <button type="button" id="addFilterBtn"
+                                        class="btn btn-secondary btn-small add-filter-btn" title="Add another filter">+
+                                        Add Filter</button>
+                                    <button id="searchBtn" class="btn btn-primary btn-small">Search</button>
+                                    <button id="clearSearchBtn" class="btn btn-secondary btn-small">Clear</button>
+                                </div>
                             </div>
                             <div class="data-export-controls">
                                 <button id="deleteSelectedRows" class="btn btn-danger btn-small"
@@ -161,6 +203,11 @@
                                     <option value="100" selected>100 per page</option>
                                     <option value="200">200 per page</option>
                                 </select>
+                                <div class="page-jump-controls">
+                                    <input type="number" id="pageJump" min="1" placeholder="Page #"
+                                        title="Jump to page">
+                                    <button id="pageJumpBtn" class="btn btn-small">Go</button>
+                                </div>
                             </div>
                         </div>
                     </div>

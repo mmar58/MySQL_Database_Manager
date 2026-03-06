@@ -12,8 +12,9 @@ let pageSize = 100;
 let isConnected = false;
 let currentSortColumn = null;
 let currentSortDirection = 'ASC';
-let currentSearchColumn = null;
-let currentSearchValue = null;
+let currentSearchFilters = [];
+let currentSearchLogic = 'AND';
+let cachedColumns = [];
 let currentCredentials = null;
 
 // DOM Elements
@@ -71,19 +72,34 @@ function setupEventListeners() {
     document.getElementById('nextPage').addEventListener('click', () => changePage(1));
     document.getElementById('pageSize').addEventListener('change', changePageSize);
 
+    // Page jump
+    document.getElementById('pageJumpBtn').addEventListener('click', jumpToPage);
+    document.getElementById('pageJump').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') jumpToPage();
+    });
+
     // Search functionality
     document.getElementById('searchBtn').addEventListener('click', performSearch);
     document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
-    document.getElementById('searchValue').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') performSearch();
+    document.getElementById('addFilterBtn').addEventListener('click', addSearchFilterRow);
+
+    // Search tips toggle
+    document.getElementById('searchTipsBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const popover = document.getElementById('searchTipsPopover');
+        popover.style.display = popover.style.display === 'none' ? 'block' : 'none';
+    });
+    // Close tips when clicking outside
+    document.addEventListener('click', (e) => {
+        const popover = document.getElementById('searchTipsPopover');
+        const btn = document.getElementById('searchTipsBtn');
+        if (popover && popover.style.display !== 'none' && !popover.contains(e.target) && e.target !== btn) {
+            popover.style.display = 'none';
+        }
     });
 
-    // Search and sort
-    document.getElementById('searchBtn').addEventListener('click', performSearch);
-    document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
-    document.getElementById('searchValue').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') performSearch();
-    });
+    // Initial remove button handler
+    setupFilterRowEvents();
 
     // Tab switching
     document.querySelectorAll('.tab-button').forEach(button => {
@@ -536,8 +552,8 @@ function selectTable(table, element) {
     currentPage = 1;
     currentSortColumn = null;
     currentSortDirection = 'ASC';
-    currentSearchColumn = null;
-    currentSearchValue = null;
+    currentSearchFilters = [];
+    currentSearchLogic = 'AND';
 
     // Reset pagination controls
     document.getElementById('prevPage').disabled = true;
@@ -556,8 +572,8 @@ function selectTable(table, element) {
         offset: 0,
         sortColumn: currentSortColumn,
         sortDirection: currentSortDirection,
-        searchColumn: currentSearchColumn,
-        searchValue: currentSearchValue
+        searchFilters: currentSearchFilters.length > 0 ? currentSearchFilters : null,
+        searchLogic: currentSearchLogic
     });
 
     loadTableIndexes();
@@ -575,8 +591,8 @@ function loadTableData() {
         offset: offset,
         sortColumn: currentSortColumn,
         sortDirection: currentSortDirection,
-        searchColumn: currentSearchColumn,
-        searchValue: currentSearchValue
+        searchFilters: currentSearchFilters.length > 0 ? currentSearchFilters : null,
+        searchLogic: currentSearchLogic
     });
 }
 
@@ -951,8 +967,9 @@ function populateTableData(data) {
 
     thead.appendChild(headerRow);
 
-    // Update search column dropdown
-    updateSearchColumns(columns);
+    // Update search column dropdowns
+    cachedColumns = columns;
+    updateAllFilterColumnDropdowns();
 
     // Create data rows
     data.data.forEach(row => {
@@ -1208,22 +1225,80 @@ function hideScrollProgress(container) {
     }
 }
 
-function updateSearchColumns(columns) {
-    const searchColumnSelect = document.getElementById('searchColumn');
-    const currentValue = searchColumnSelect.value;
+function updateAllFilterColumnDropdowns() {
+    const filterRows = document.querySelectorAll('.search-filter-row');
+    filterRows.forEach(row => {
+        const select = row.querySelector('.filter-column');
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">Select Column</option>';
+        cachedColumns.forEach(column => {
+            const option = document.createElement('option');
+            option.value = column;
+            option.textContent = column;
+            select.appendChild(option);
+        });
+        if (currentValue && cachedColumns.includes(currentValue)) {
+            select.value = currentValue;
+        }
+    });
+}
 
-    searchColumnSelect.innerHTML = '<option value="">Search Column</option>';
+function addSearchFilterRow() {
+    const container = document.getElementById('searchFiltersContainer');
+    const row = document.createElement('div');
+    row.className = 'search-filter-row';
+    row.innerHTML = `
+        <select class="filter-column">
+            <option value="">Select Column</option>
+        </select>
+        <input type="text" class="filter-value" placeholder="Search value...">
+        <button type="button" class="remove-filter-btn btn btn-danger btn-small" title="Remove filter">✕</button>
+    `;
+    container.appendChild(row);
 
-    columns.forEach(column => {
+    // Populate columns in the new row
+    const select = row.querySelector('.filter-column');
+    cachedColumns.forEach(column => {
         const option = document.createElement('option');
         option.value = column;
         option.textContent = column;
-        searchColumnSelect.appendChild(option);
+        select.appendChild(option);
     });
 
-    if (currentValue && columns.includes(currentValue)) {
-        searchColumnSelect.value = currentValue;
+    // Setup events for the new row
+    setupFilterRowEvents();
+}
+
+function removeSearchFilterRow(row) {
+    const container = document.getElementById('searchFiltersContainer');
+    const rows = container.querySelectorAll('.search-filter-row');
+    // Always keep at least one row
+    if (rows.length > 1) {
+        row.remove();
+    } else {
+        // Clear the last remaining row instead of removing it
+        row.querySelector('.filter-column').value = '';
+        row.querySelector('.filter-value').value = '';
     }
+}
+
+function setupFilterRowEvents() {
+    const container = document.getElementById('searchFiltersContainer');
+    container.querySelectorAll('.remove-filter-btn').forEach(btn => {
+        // Remove old listeners by cloning
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', () => removeSearchFilterRow(newBtn.closest('.search-filter-row')));
+    });
+
+    // Add Enter key support to all filter value inputs
+    container.querySelectorAll('.filter-value').forEach(input => {
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        newInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+    });
 }
 
 function updateSearchInfo(data) {
@@ -1233,14 +1308,19 @@ function updateSearchInfo(data) {
         existingInfo.remove();
     }
 
-    // Add search info if search is active
-    if (data.searchColumn && data.searchValue) {
-        const searchInfo = document.createElement('div');
-        searchInfo.className = 'search-info';
-        searchInfo.textContent = `Showing results for "${data.searchValue}" in column "${data.searchColumn}" (${data.total} matches)`;
+    // Add search info if search filters are active
+    if (data.searchFilters && Array.isArray(data.searchFilters) && data.searchFilters.length > 0) {
+        const validFilters = data.searchFilters.filter(f => f.column && f.value);
+        if (validFilters.length > 0) {
+            const logic = data.searchLogic || 'AND';
+            const filterDescriptions = validFilters.map(f => `"${f.value}" in "${f.column}"`);
+            const searchInfo = document.createElement('div');
+            searchInfo.className = 'search-info';
+            searchInfo.textContent = `Filtering: ${filterDescriptions.join(` ${logic} `)} (${data.total} matches)`;
 
-        const dataControls = document.querySelector('.data-controls');
-        dataControls.insertAdjacentElement('afterend', searchInfo);
+            const dataControls = document.querySelector('.data-controls');
+            dataControls.insertAdjacentElement('afterend', searchInfo);
+        }
     }
 }
 
@@ -1260,41 +1340,67 @@ function sortByColumn(column) {
 }
 
 function performSearch() {
-    const searchColumn = document.getElementById('searchColumn').value;
-    const searchValue = document.getElementById('searchValue').value.trim();
+    const filterRows = document.querySelectorAll('.search-filter-row');
+    const filters = [];
+    let hasIncomplete = false;
 
-    if (!searchColumn && searchValue) {
-        showNotification('Please select a column to search in', 'error');
+    filterRows.forEach(row => {
+        const column = row.querySelector('.filter-column').value;
+        const value = row.querySelector('.filter-value').value.trim();
+
+        if (column && value) {
+            filters.push({ column, value });
+        } else if (column && !value) {
+            hasIncomplete = true;
+        } else if (!column && value) {
+            hasIncomplete = true;
+        }
+    });
+
+    if (hasIncomplete && filters.length === 0) {
+        showNotification('Please select a column and enter a value for each filter', 'error');
         return;
     }
 
-    if (searchColumn && !searchValue) {
-        showNotification('Please enter a search value', 'error');
-        return;
-    }
+    currentSearchFilters = filters;
+    currentSearchLogic = document.getElementById('searchLogic').value;
+    currentPage = 1;
 
-    currentSearchColumn = searchColumn || null;
-    currentSearchValue = searchValue || null;
-    currentPage = 1; // Reset to first page when searching
-
-    // Update search input styling
-    const searchInput = document.getElementById('searchValue');
-    if (searchValue) {
-        searchInput.classList.add('search-active');
-    } else {
-        searchInput.classList.remove('search-active');
-    }
+    // Update filter input styling
+    filterRows.forEach(row => {
+        const column = row.querySelector('.filter-column').value;
+        const value = row.querySelector('.filter-value').value.trim();
+        const input = row.querySelector('.filter-value');
+        if (column && value) {
+            input.classList.add('search-active');
+        } else {
+            input.classList.remove('search-active');
+        }
+    });
 
     loadTableData();
 }
 
 function clearSearch() {
-    document.getElementById('searchColumn').value = '';
-    document.getElementById('searchValue').value = '';
-    document.getElementById('searchValue').classList.remove('search-active');
+    const container = document.getElementById('searchFiltersContainer');
+    // Reset to a single empty row
+    container.innerHTML = `
+        <div class="search-filter-row">
+            <select class="filter-column">
+                <option value="">Select Column</option>
+            </select>
+            <input type="text" class="filter-value" placeholder="Search value...">
+            <button type="button" class="remove-filter-btn btn btn-danger btn-small" title="Remove filter">✕</button>
+        </div>
+    `;
 
-    currentSearchColumn = null;
-    currentSearchValue = null;
+    // Repopulate columns in the reset row
+    updateAllFilterColumnDropdowns();
+    setupFilterRowEvents();
+
+    document.getElementById('searchLogic').value = 'AND';
+    currentSearchFilters = [];
+    currentSearchLogic = 'AND';
     currentPage = 1;
 
     // Remove search info
@@ -1303,6 +1409,25 @@ function clearSearch() {
         existingInfo.remove();
     }
 
+    loadTableData();
+}
+
+function jumpToPage() {
+    const input = document.getElementById('pageJump');
+    const page = parseInt(input.value);
+
+    if (isNaN(page) || page < 1) {
+        showNotification('Please enter a valid page number', 'error');
+        return;
+    }
+
+    if (page > totalPages) {
+        showNotification(`Page ${page} does not exist. Max page is ${totalPages}`, 'error');
+        return;
+    }
+
+    currentPage = page;
+    input.value = '';
     loadTableData();
 }
 
